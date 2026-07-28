@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connecting Google Drive…</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f1419;
+        color: #e7e9ea;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+      }
+      .card {
+        max-width: 420px;
+        text-align: center;
+      }
+      .err {
+        color: #f87171;
+        white-space: pre-wrap;
+        font-size: 14px;
+        margin-top: 16px;
+      }
+      .ok {
+        color: #4ade80;
+      }
+      .hint {
+        color: #9ca3af;
+        font-size: 14px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Google Drive</h1>
+      <p id="status">Finishing sign-in…</p>
+      <p id="hint" class="hint" hidden>
+        You can close this tab and return to the Personal Finance app.
+      </p>
+      <p id="error" class="err" hidden></p>
+    </div>
+    <script>
+      (async function () {
+        const statusEl = document.getElementById("status");
+        const errorEl = document.getElementById("error");
+        const hintEl = document.getElementById("hint");
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get("code");
+        const state = params.get("state");
+        const oauthError = params.get("error");
+
+        if (oauthError) {
+          statusEl.textContent = "Connection cancelled";
+          errorEl.hidden = false;
+          errorEl.textContent = oauthError + (params.get("error_description") || "");
+          return;
+        }
+        if (!code || !state) {
+          statusEl.textContent = "Missing OAuth code";
+          errorEl.hidden = false;
+          errorEl.textContent = "Try Connect Google Drive again from Settings.";
+          return;
+        }
+
+        try {
+          // Same-origin relative URL works for both http (dev) and https (desktop TLS).
+          const res = await fetch("/api/v1/google-drive/browser/exchange", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ code, state }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            throw new Error(data.detail || data.message || res.statusText);
+          }
+          statusEl.textContent = "Google Drive connected!";
+          statusEl.className = "ok";
+          hintEl.hidden = false;
+          if (data.email) {
+            hintEl.textContent =
+              "Connected as " + data.email + ". You can close this tab and return to the app.";
+          }
+        } catch (e) {
+          statusEl.textContent = "Could not finish connecting";
+          errorEl.hidden = false;
+          errorEl.textContent = String(e.message || e);
+        }
+      })();
+    </script>
+  </body>
+</html>

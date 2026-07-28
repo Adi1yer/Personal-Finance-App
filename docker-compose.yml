@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      API_HOST: "0.0.0.0"
+      CLOUD_SCHEDULER_ENABLED: "true"
+      CORS_ORIGINS: "http://127.0.0.1:8000,http://localhost:8000"
+    volumes:
+      - pf_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  pf_data:

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+
+# Local runtime config (BYO keys written by Setup wizard)
+data/app_config.json
+
+# Data & certs
+data/
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+exports/
+
+# Node
+node_modules/
+.tools/
+frontend/dist/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Logs
+*.log
+logs/

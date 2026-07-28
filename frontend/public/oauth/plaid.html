@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Connecting bank…</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        background: #0f1419;
+        color: #e7e9ea;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+      }
+      .card {
+        max-width: 420px;
+        text-align: center;
+      }
+      .err {
+        color: #f87171;
+        white-space: pre-wrap;
+        font-size: 14px;
+        margin-top: 16px;
+      }
+      .ok {
+        color: #4ade80;
+      }
+      .hint {
+        color: #9ca3af;
+        font-size: 14px;
+        margin-top: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Connecting bank…</h1>
+      <p id="status">Finishing Chase sign-in…</p>
+      <p id="hint" class="hint" hidden>
+        You can close this tab and return to the Personal Finance app to map accounts.
+      </p>
+      <p id="error" class="err" hidden></p>
+    </div>
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+    <script src="/plaid-browser.js"></script>
+    <script>
+      plaidBrowser.startLinkFlow({
+        statusEl: document.getElementById("status"),
+        errorEl: document.getElementById("error"),
+        hintEl: document.getElementById("hint"),
+        successMessage: "Bank connected!",
+        receivedRedirectUri: window.location.href,
+      });
+    </script>
+  </body>
+</html>

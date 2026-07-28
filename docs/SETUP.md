@@ -1,6 +1,8 @@
 # Setup guide (bring your own keys)
 
-This app is **local-first**. You create free developer accounts at Plaid and Google, paste the keys into **Settings → Connections setup**, and keep them on your Mac only.
+Short checklist. For **what you should see at each click** (Safari warnings, Google test users, Total contributions, etc.), use the full guides:
+
+**[docs/help/](help/README.md)** — also available in the app under **Settings → Setup help**, and readable by the Advisor.
 
 ## 1. Encryption key
 
@@ -30,6 +32,8 @@ make trust-cert
 
 Then restart the app. If the browser warns about the local certificate, proceed for localhost only.
 
+Details: [help/04-plaid-bank-connect.md](help/04-plaid-bank-connect.md)
+
 ## 3. Google Drive backups
 
 1. Create a project in [Google Cloud Console](https://console.cloud.google.com/).
@@ -42,18 +46,27 @@ Then restart the app. If the browser warns about the local certificate, proceed 
 7. Paste client ID + secret in **Connections setup**.
 8. **Settings → Google Drive backups → Connect**.
 
+Details: [help/05-google-drive-backups.md](help/05-google-drive-backups.md)
+
 ## 4. Ollama (local Advisor)
 
 1. Install from [ollama.com](https://ollama.com).
 2. Pull a model, e.g. `ollama pull llama3.1`.
 3. In **Settings → Preferences**, set URL (`http://localhost:11434`) and model name.
-4. Open **Advisor** and try a setup prompt like “How do I connect my bank with Plaid?”
+4. Open **Advisor** and try: “What's the next step to finish setup?”
 
-The rest of the app works without Ollama.
+The Advisor reads `docs/help/` when answering setup questions. The rest of the app works without Ollama.
 
 ## 5. First profile
 
 Register with email + password. Save the **recovery code**. Data for that login lives under `data/profiles/<uuid>/ledger.db`.
+
+## 6. Manual accounts & goals
+
+- Workplace **401(k)** / some **HSAs**: add as manual accounts, **Update balance**, set **Total contributions** to the full YTD from the plan site.
+- **Goals**: set investing % / safety net; check the per-account breakdown after Sync.
+
+Details: [help/06-accounts-and-contributions.md](help/06-accounts-and-contributions.md) · [help/07-goals.md](help/07-goals.md)
 
 ## Troubleshooting
 
@@ -64,3 +77,6 @@ Register with email + password. Save the **recovery code**. Data for that login 
 | Safari “connection not private” | Expected for local HTTPS — Show Details → visit website |
 | Drive 403 access_denied | Add your Gmail as an OAuth **test user** |
 | Advisor offline | Start Ollama; check URL/model in Settings |
+| Investing goal low | Enter **Total contributions** on manual 401(k)/HSA |
+
+Full table: [help/99-troubleshooting.md](help/99-troubleshooting.md)

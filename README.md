@@ -18,9 +18,10 @@ make launch
 Or build a one-click Mac app: `make mac-app` → open **Applications → Personal Finance**.
 
 1. Create an account in the app (email + password).
-2. **Settings → Connections setup** — paste Plaid + Google OAuth keys (see [docs/SETUP.md](docs/SETUP.md)).
+2. **Settings → Connections setup** — paste Plaid + Google OAuth keys (see [docs/SETUP.md](docs/SETUP.md) or in-app **Setup help**).
 3. **Connect bank** → map accounts → sync.
 4. Optional: connect Google Drive backups; install [Ollama](https://ollama.com) for the Advisor.
+5. Manual 401(k)/HSA: set balances + **Total contributions**; configure **Goals**.
 
 ## Features
 
@@ -29,13 +30,14 @@ Or build a one-click Mac app: `make mac-app` → open **Applications → Persona
 - Manual 401(k) / HSA balances + contribution tracking
 - Annual investing % and safety-net goals
 - Google Drive snapshot backups (keep last 5)
-- Local Advisor (Ollama) for finances **and** setup help
+- Local Advisor (Ollama) for finances **and** setup help (reads `docs/help/`)
 
 ## Docs
 
 | Doc | Topic |
 |-----|--------|
-| [docs/SETUP.md](docs/SETUP.md) | Plaid, Google Drive, Ollama, HTTPS cert |
+| **[docs/help/](docs/help/README.md)** | Full setup walkthrough (what to expect / click) |
+| [docs/SETUP.md](docs/SETUP.md) | Short Plaid / Google / Ollama checklist |
 | [docs/SECURITY.md](docs/SECURITY.md) | What stays local, what not to commit |
 | [docs/ACCOUNTS_AND_PLAID.md](docs/ACCOUNTS_AND_PLAID.md) | Accounts + Plaid (Chase as an example) |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | System design |

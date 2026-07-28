@@ -435,10 +435,11 @@ export default function AdvisorPage() {
               </p>
               <div className="mt-6 flex max-w-lg flex-wrap justify-center gap-2">
                 {[
+                  "What's the next step to finish setup?",
                   "How do I connect my bank with Plaid?",
                   "How do I back up to Google Drive?",
+                  "How do I enter 401k Total contributions?",
                   "Am I on track for my investing goal?",
-                  "How do I install Ollama for the advisor?",
                 ].map((prompt) => (
                   <button
                     key={prompt}

@@ -575,8 +575,62 @@ export default function SettingsPage() {
       )}
 
       <SetupConnectionsSection />
+      <SetupHelpSection />
       <AppSettingsSection />
     </div>
+  );
+}
+
+function SetupHelpSection() {
+  const guides = useQuery({ queryKey: ["helpGuides"], queryFn: api.helpGuides });
+  const [openSlug, setOpenSlug] = useState<string | null>(null);
+  const guide = useQuery({
+    queryKey: ["helpGuide", openSlug],
+    queryFn: () => api.helpGuide(openSlug!),
+    enabled: !!openSlug,
+  });
+
+  const checklist = (guides.data?.guides ?? []).filter((g) => g.slug !== "README");
+
+  return (
+    <Card>
+      <CardHeader
+        title="Setup help"
+        subtitle="What to expect at each step — same path as a full-featured install"
+      />
+      <div className="space-y-3 p-5 text-sm">
+        <p className="text-xs text-muted">
+          Follow these in order the first time. The Advisor can also read these guides when you ask
+          setup questions (requires Ollama).
+        </p>
+        <ol className="space-y-2">
+          {checklist.map((g) => (
+            <li key={g.slug}>
+              <button
+                type="button"
+                className="w-full rounded-lg border border-surface-border bg-surface-raised/50 px-3 py-2 text-left hover:border-accent/40"
+                onClick={() => setOpenSlug((s) => (s === g.slug ? null : g.slug))}
+              >
+                <div className="font-medium text-slate-100">{g.title}</div>
+                {g.blurb ? <div className="mt-0.5 text-xs text-muted">{g.blurb}</div> : null}
+              </button>
+              {openSlug === g.slug && (
+                <div className="mt-2 max-h-80 overflow-y-auto rounded-lg border border-surface-border bg-black/20 px-3 py-2 text-xs leading-relaxed text-slate-300 whitespace-pre-wrap">
+                  {guide.isLoading
+                    ? "Loading…"
+                    : guide.isError
+                      ? (guide.error as Error).message
+                      : guide.data?.content}
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+        {!guides.data && !guides.isLoading && (
+          <p className="text-xs text-muted">Help guides unavailable — see docs/help/ in the repo.</p>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -722,7 +776,7 @@ function SetupConnectionsSection() {
             Google redirect URI:{" "}
             <code className="text-slate-300">{s?.google_drive.redirect_uri}</code>
             {" · "}
-            See docs/SETUP.md for step-by-step.
+            See docs/help/ (or Setup help below) for the full walkthrough.
           </div>
         </div>
 

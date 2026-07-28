@@ -57,3 +57,23 @@ def post_setup(request: Request, body: SetupPatch) -> dict[str, Any]:
     if patch:
         app_config.save_app_config(patch)
     return app_config.setup_status()
+
+
+@router.get("/help")
+def get_help_index(request: Request) -> dict[str, Any]:
+    """List setup help guides (also used by the Advisor)."""
+    _require_localhost(request)
+    from app.services.help_docs import help_index_for_advisor
+
+    return help_index_for_advisor()
+
+
+@router.get("/help/{slug}")
+def get_help_guide(request: Request, slug: str) -> dict[str, str]:
+    _require_localhost(request)
+    from app.services.help_docs import read_help_guide
+
+    try:
+        return read_help_guide(slug)
+    except ValueError as exc:
+        raise HTTPException(404, str(exc)) from exc

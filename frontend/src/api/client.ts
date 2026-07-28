@@ -768,6 +768,17 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+  helpGuides: () =>
+    request<{
+      help_root: string;
+      recommended_order: string[];
+      guides: { slug: string; title: string; blurb: string }[];
+      usage: string;
+    }>("/api/v1/setup/help"),
+  helpGuide: (slug: string) =>
+    request<{ slug: string; title: string; path: string; content: string }>(
+      `/api/v1/setup/help/${encodeURIComponent(slug)}`
+    ),
   patchSettings: (settings: Record<string, unknown>) =>
     request<AppSettings>("/api/v1/settings", {
       method: "PATCH",

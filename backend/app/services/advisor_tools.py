@@ -175,6 +175,51 @@ def tool_definitions() -> list[dict[str, Any]]:
                 "parameters": {"type": "object", "properties": {}},
             },
         },
+        {
+            "type": "function",
+            "function": {
+                "name": "list_help_guides",
+                "description": (
+                    "List packaged setup help guides (install, Plaid, Google Drive, accounts, "
+                    "goals, Ollama, troubleshooting). Use for setup walkthroughs."
+                ),
+                "parameters": {"type": "object", "properties": {}},
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "search_help_guides",
+                "description": (
+                    "Search setup help docs by keywords (e.g. 'google drive test user', "
+                    "'total contributions', 'safari certificate'). Prefer this before guessing."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string"},
+                        "limit": {"type": "integer"},
+                    },
+                    "required": ["query"],
+                },
+            },
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "read_help_guide",
+                "description": (
+                    "Read the full markdown of one help guide by slug "
+                    "(e.g. '04-plaid-bank-connect', '05-google-drive-backups', 'README'). "
+                    "Use after list_help_guides or search_help_guides."
+                ),
+                "parameters": {
+                    "type": "object",
+                    "properties": {"slug": {"type": "string"}},
+                    "required": ["slug"],
+                },
+            },
+        },
     ]
 
 
@@ -247,9 +292,12 @@ def _get_setup_status(db: Session, **_kwargs: Any) -> dict[str, Any]:
         "Settings → Connections setup (Plaid + Google keys). "
         "Settings → Connect bank (Plaid Link). "
         "Settings → Google Drive backups. "
-        "Settings → Preferences for Ollama URL/model."
+        "Settings → Preferences for Ollama URL/model. "
+        "Settings → Setup help for the full guided checklist."
     )
-    status["docs"] = "See docs/SETUP.md in the project for Plaid and Google Cloud steps."
+    from app.services.help_docs import help_index_for_advisor
+
+    status["docs"] = help_index_for_advisor()
     return status
 
 
@@ -268,6 +316,24 @@ def _get_google_drive_status(db: Session, **_kwargs: Any) -> dict[str, Any]:
     return out
 
 
+def _list_help_guides(db: Session, **_kwargs: Any) -> dict[str, Any]:
+    from app.services.help_docs import help_index_for_advisor
+
+    return help_index_for_advisor()
+
+
+def _search_help_guides(db: Session, query: str, limit: int = 5, **_kwargs: Any) -> list[dict[str, Any]]:
+    from app.services.help_docs import search_help_guides
+
+    return search_help_guides(query, limit=limit or 5)
+
+
+def _read_help_guide(db: Session, slug: str, **_kwargs: Any) -> dict[str, str]:
+    from app.services.help_docs import read_help_guide
+
+    return read_help_guide(slug)
+
+
 TOOL_HANDLERS: dict[str, Callable[..., Any]] = {
     "get_financial_summary": _get_financial_summary,
     "get_holdings": _get_holdings,
@@ -279,6 +345,9 @@ TOOL_HANDLERS: dict[str, Callable[..., Any]] = {
     "get_setup_status": _get_setup_status,
     "get_plaid_connection_status": _get_plaid_connection_status,
     "get_google_drive_status": _get_google_drive_status,
+    "list_help_guides": _list_help_guides,
+    "search_help_guides": _search_help_guides,
+    "read_help_guide": _read_help_guide,
 }
 
 

@@ -1,5 +1,21 @@
 # Troubleshooting
 
+## App won’t open from the icon
+
+| Symptom | Fix |
+|---------|-----|
+| Click icon → nothing | Re-run `make mac-app`; clear quarantine: `xattr -cr ~/Applications/Personal\ Finance.app`; open again |
+| Only works via Package Contents / Terminal | Old shell-script app — rebuild with current `make mac-app` (native `PersonalFinance` launcher) |
+| Alert: project folder missing/moved | Clone path changed — `cd` into the repo and `make mac-app` again |
+| Logs | `~/Library/Application Support/PersonalFinance/logs/launch.log` and `app-launch.log` |
+
+## Sign-up / recovery code
+
+| Symptom | Fix |
+|---------|-----|
+| Can’t copy recovery code | Use **Copy recovery code**; click the code field then Cmd+C. Rebuild UI (`make build-ui` or relaunch so dist updates) if the button is missing |
+| Lost recovery code | Settings → Password → **New recovery code** while signed in |
+
 ## Connections / keys
 
 | Symptom | Likely cause | Fix |

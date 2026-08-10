@@ -1,9 +1,12 @@
 import { FormEvent, useState } from "react";
-import { Link } from "react-router-dom";
-import { api, setAuthToken } from "../api/client";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import { RecoveryCodeBox } from "../components/RecoveryCodeBox";
 import { Button, Card, Input } from "../components/ui";
 
 export default function SignUpPage() {
+  const { register } = useAuth();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -20,9 +23,7 @@ export default function SignUpPage() {
     }
     setPending(true);
     try {
-      const res = await api.register(email, password, displayName || undefined);
-      setAuthToken(res.access_token);
-      localStorage.setItem("pf_auth_token", res.access_token);
+      const res = await register(email, password, displayName || undefined);
       setRecoveryCode(res.recovery_code);
     } catch (err) {
       setError((err as Error).message || "Could not create profile");
@@ -40,10 +41,8 @@ export default function SignUpPage() {
             You need this to reset your password. We cannot email it — everything stays on
             this Mac.
           </p>
-          <p className="mt-6 rounded-lg border border-accent/40 bg-accent/10 px-4 py-3 text-center font-mono text-lg text-white">
-            {recoveryCode}
-          </p>
-          <Button className="mt-6 w-full" onClick={() => { window.location.href = "/"; }}>
+          <RecoveryCodeBox code={recoveryCode} className="mt-6" />
+          <Button className="mt-6 w-full" onClick={() => navigate("/", { replace: true })}>
             I saved it — open my ledger
           </Button>
         </Card>

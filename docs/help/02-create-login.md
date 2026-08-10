@@ -8,12 +8,14 @@
 
 ## What you should see
 
-- A **recovery code** shown once — save it somewhere safe (password manager).
-- You land inside the app (Overview / Settings available).
+- A **recovery code** shown once (four words like `linen-delta-linen-terra`).
+- A **Copy recovery code** button — use it (or click the code field and Cmd+C).
+- After **I saved it — open my ledger**, you land inside the app.
 
 ## Important
 
+- Save the recovery code in a password manager. It is shown only once at sign-up (you can generate a new one later under Settings → Password).
 - Each login gets its own ledger under `data/profiles/<uuid>/ledger.db` on **your** Mac.
-- Password reset uses the recovery code (or a local admin reset) — there is no email reset for strangers.
+- Password reset uses the recovery code — there is no email reset.
 
 Next: [Connections setup (keys)](03-connections-keys.md)

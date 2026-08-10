@@ -30,6 +30,7 @@ When everything is set up you should be able to:
 
 ## Tips
 
+- Prefer **~/Applications → Personal Finance** after `make mac-app` — do not start the app via Package Contents / Terminal.
 - Keep Plaid in **Sandbox** until Link works; then move to **production** for a real bank.
 - Google OAuth apps in **Testing** only allow emails listed as **test users**.
 - Never share your `.env`, `data/`, or API secrets with anyone.

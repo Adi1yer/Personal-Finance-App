@@ -7,13 +7,29 @@ APP_NAME="Personal Finance"
 APP_DIR="$HOME/Applications/${APP_NAME}.app"
 CONTENTS="$APP_DIR/Contents"
 MACOS="$CONTENTS/MacOS"
-PROJECT_ROOT_ESCAPED=$(printf '%s' "$PROJECT_ROOT" | sed 's/"/\\"/g')
+RESOURCES="$CONTENTS/Resources"
+LAUNCHER_SRC="$PROJECT_ROOT/scripts/mac_app_launcher.c"
+LAUNCHER_BIN="$MACOS/PersonalFinance"
 
 log "Building $APP_DIR"
 log "Project root: $PROJECT_ROOT"
 
+if [[ ! -f "$LAUNCHER_SRC" ]]; then
+  log "ERROR: missing $LAUNCHER_SRC"
+  exit 1
+fi
+
+if ! command -v clang >/dev/null 2>&1; then
+  alert_mac "clang not found. Install Xcode Command Line Tools (xcode-select --install), then re-run make mac-app."
+  log "ERROR: clang required to build the Mac app launcher"
+  exit 1
+fi
+
 rm -rf "$APP_DIR"
-mkdir -p "$MACOS"
+mkdir -p "$MACOS" "$RESOURCES"
+
+# Absolute project path read by the native stub (handles spaces safely).
+printf '%s\n' "$PROJECT_ROOT" >"$RESOURCES/project_root"
 
 cat >"$CONTENTS/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -21,7 +37,7 @@ cat >"$CONTENTS/Info.plist" <<EOF
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key>
-  <string>launch</string>
+  <string>PersonalFinance</string>
   <key>CFBundleIdentifier</key>
   <string>com.personalfinance.app</string>
   <key>CFBundleName</key>
@@ -31,9 +47,9 @@ cat >"$CONTENTS/Info.plist" <<EOF
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>0.1.1</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>2</string>
   <key>LSMinimumSystemVersion</key>
   <string>11.0</string>
   <key>NSHighResolutionCapable</key>
@@ -46,19 +62,18 @@ cat >"$CONTENTS/Info.plist" <<EOF
 </plist>
 EOF
 
-cat >"$MACOS/launch" <<EOF
-#!/bin/bash
-export PERSONAL_FINANCE_ROOT="$PROJECT_ROOT_ESCAPED"
-export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:\$PATH"
-# Finder launches .app under Rosetta on some Macs; Python wheels are arm64.
-if [[ "\$(sysctl -n hw.optional.arm64 2>/dev/null)" == "1" ]]; then
-  exec arch -arm64 /bin/bash "\$PERSONAL_FINANCE_ROOT/scripts/launch.sh"
-else
-  exec "\$PERSONAL_FINANCE_ROOT/scripts/launch.sh"
-fi
-EOF
+log "Compiling native launcher…"
+clang -O2 -Wall -Wextra -o "$LAUNCHER_BIN" "$LAUNCHER_SRC"
+chmod +x "$LAUNCHER_BIN"
 
-chmod +x "$MACOS/launch"
+# Drop Gatekeeper quarantine so double-click is not silently blocked for local builds.
+xattr -cr "$APP_DIR" 2>/dev/null || true
+
+# Refresh Launch Services so the Dock/Spotlight pick up the new executable name.
+LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
+if [[ -x "$LSREGISTER" ]]; then
+  "$LSREGISTER" -f "$APP_DIR" 2>/dev/null || true
+fi
 
 # Optional: run setup on first build if venv missing
 if [[ ! -x "$VENV/bin/uvicorn" ]]; then
@@ -67,7 +82,8 @@ if [[ ! -x "$VENV/bin/uvicorn" ]]; then
 fi
 
 log "Installed: $APP_DIR"
-log "Open Finder → Applications → \"Personal Finance\" (or Spotlight: Personal Finance)"
+log "Open with Spotlight or Finder → Applications (user) → Personal Finance"
+log "If double-click still does nothing: xattr -cr \"$APP_DIR\" && open \"$APP_DIR\""
 open -R "$APP_DIR"
 
-notify_mac "Personal Finance" "App icon installed in Applications."
+notify_mac "Personal Finance" "App icon installed. Double-click to open (no Terminal)."

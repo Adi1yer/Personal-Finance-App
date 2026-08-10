@@ -229,6 +229,8 @@ def main() -> None:
         width=1320,
         height=880,
         min_size=(960, 640),
+        text_select=True,
+        background_color="#0B1220",
     )
     webview.start()
     _shutdown()

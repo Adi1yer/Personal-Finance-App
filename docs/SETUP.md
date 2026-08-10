@@ -4,6 +4,24 @@ Short checklist. For **what you should see at each click** (Safari warnings, Goo
 
 **[docs/help/](help/README.md)** — also available in the app under **Settings → Setup help**, and readable by the Advisor.
 
+## 0. Install the Mac app (double-click)
+
+```bash
+make setup
+make mac-app   # needs Xcode CLT / clang
+```
+
+Open **~/Applications → Personal Finance** (not Package Contents). If the icon does nothing:
+
+```bash
+xattr -cr ~/Applications/Personal\ Finance.app
+open ~/Applications/Personal\ Finance.app
+```
+
+If you move the git clone, run `make mac-app` again. Logs: `~/Library/Application Support/PersonalFinance/logs/`.
+
+On sign-up, use **Copy recovery code** (text selection is enabled in the desktop window).
+
 ## 1. Encryption key
 
 On first save in Connections setup, the app can generate an `ENCRYPTION_KEY` automatically (stored in `data/app_config.json`). You can also put one in `.env`:

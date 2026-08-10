@@ -6,6 +6,7 @@ import { api, type PlaidAccount } from "../api/client";
 import { formatPlaidSyncSummary } from "../lib/plaidSync";
 import { plaidLinkErrorHint, plaidRedirectUri } from "../lib/plaidLink";
 import { plaidAccountDetails, plaidAccountTitle } from "../lib/plaidAccount";
+import { RecoveryCodeBox } from "../components/RecoveryCodeBox";
 import { Card, CardHeader, Button, Badge, Select, Input } from "../components/ui";
 import { Cloud, CloudUpload, Link2, LogOut, RefreshCw, Server, User } from "lucide-react";
 
@@ -261,8 +262,8 @@ export default function SettingsPage() {
           </div>
           {newRecoveryCode && (
             <div className="rounded-lg border border-accent/40 bg-accent/10 p-3">
-              <p className="text-xs text-muted">Save this code somewhere safe:</p>
-              <p className="mt-1 font-mono text-white">{newRecoveryCode}</p>
+              <p className="mb-2 text-xs text-muted">Save this code somewhere safe:</p>
+              <RecoveryCodeBox code={newRecoveryCode} />
             </div>
           )}
           {passwordMsg && <p className="text-xs text-muted">{passwordMsg}</p>}

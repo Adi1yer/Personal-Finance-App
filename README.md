@@ -15,7 +15,7 @@ make setup
 make launch
 ```
 
-Or build a one-click Mac app: `make mac-app` → open **Applications → Personal Finance**.
+Or build a double-clickable Mac app: `make mac-app` → open **~/Applications → Personal Finance** (needs Xcode CLT / `clang`).
 
 1. Create an account in the app (email + password).
 2. **Settings → Connections setup** — paste Plaid + Google OAuth keys (see [docs/SETUP.md](docs/SETUP.md) or in-app **Setup help**).

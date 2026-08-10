@@ -4,8 +4,18 @@ set -euo pipefail
 source "$(dirname "$0")/lib.sh"
 ensure_native_arch
 
-cd "$PROJECT_ROOT"
+# Support logs first — Finder launches have no Terminal for stdout.
+mkdir -p "$SUPPORT_DIR" "$LOG_DIR"
+exec >>"$LOG_DIR/launch.log" 2>&1
+
+if [[ ! -d "$PROJECT_ROOT" || ! -f "$PROJECT_ROOT/scripts/launch.sh" ]]; then
+  log "ERROR: invalid PROJECT_ROOT=$PROJECT_ROOT"
+  alert_mac "Project folder missing or moved. From your clone run: make mac-app"
+  exit 1
+fi
+
 ensure_dirs
+cd "$PROJECT_ROOT"
 
 # Optional cloud API URL (one line: https://your-server.example.com)
 CLOUD_API_FILE="$HOME/Library/Application Support/PersonalFinance/cloud-api.url"
@@ -14,9 +24,8 @@ if [[ -z "${PERSONAL_FINANCE_API_URL:-}" && -f "$CLOUD_API_FILE" ]]; then
   log "Using cloud API: $PERSONAL_FINANCE_API_URL"
 fi
 
-exec >>"$LOG_DIR/launch.log" 2>&1
-
 log "=== Launch $(date) ==="
+log "PROJECT_ROOT=$PROJECT_ROOT"
 
 # Window already up — focus it (no launch lock needed).
 if is_desktop_running; then

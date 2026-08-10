@@ -19,7 +19,11 @@ type AuthState = {
 
 type AuthContextValue = AuthState & {
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    displayName?: string
+  ) => Promise<{ recovery_code: string }>;
   logout: () => void;
 };
 
@@ -86,7 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile_id: res.profile_id,
         email: res.email,
         display_name: res.display_name,
+        has_recovery_code: true,
       });
+      return { recovery_code: res.recovery_code };
     },
     [persist]
   );

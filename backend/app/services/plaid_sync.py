@@ -732,10 +732,15 @@ def sync_all(db: Session, *, force: bool = False) -> dict[str, int | bool]:
         result["investment_staged"] = inv["investment_staged"]
         result["investment_posted"] = inv["investment_posted"]
         result["investment_skipped"] = inv["investment_skipped"]
-        from app.services.posting_repair import repair_card_cross_posted_transactions
+        from app.services.posting_repair import (
+            repair_card_cross_posted_transactions,
+            repair_inverted_card_credits,
+        )
 
         repair = repair_card_cross_posted_transactions(db)
         result["card_cross_post_repair"] = repair
+        credit_repair = repair_inverted_card_credits(db)
+        result["card_credit_sign_repair"] = credit_repair
         dup = repair_duplicate_card_payments(db)
         result["duplicate_card_payment_repair"] = dup
         from app.services.plaid_dedup import (
@@ -946,28 +951,29 @@ def _post_staged_row(
                     source=TransactionSource.plaid,
                 )
                 return True
-        expense_acct = _get_expense_account(db)
-        if expense_acct:
-            create_transaction(
-                db,
-                TransactionCreate(
-                    txn_date=row.txn_date,
-                    payee=row.payee,
-                    memo=extra.get("memo"),
-                    external_id=row.external_id,
-                    entries=[
-                        EntryLine(
-                            account_id=expense_acct.id,
-                            amount=abs(amt),
-                            category_id=category_id,
-                        ),
-                        EntryLine(account_id=ledger.id, amount=-abs(amt)),
-                    ],
-                ),
-                source=TransactionSource.plaid,
-            )
-            return True
-        return False
+        # Preserve sign: purchases (amt < 0) increase balance owed; statement
+        # credits / cash back / refunds (amt > 0) decrease it. Never force -abs —
+        # that turned Chase "STATEMENT CREDIT" rewards into red charges.
+        offset_id = _offset_account(db, ledger.id, category_id)
+        create_transaction(
+            db,
+            TransactionCreate(
+                txn_date=row.txn_date,
+                payee=row.payee,
+                memo=extra.get("memo"),
+                external_id=row.external_id,
+                entries=[
+                    EntryLine(account_id=ledger.id, amount=amt),
+                    EntryLine(
+                        account_id=offset_id,
+                        amount=-amt,
+                        category_id=category_id,
+                    ),
+                ],
+            ),
+            source=TransactionSource.plaid,
+        )
+        return True
 
     offset_id = _offset_account(db, ledger.id, category_id)
     entries = [

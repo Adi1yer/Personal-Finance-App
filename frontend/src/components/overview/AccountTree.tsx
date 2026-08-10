@@ -85,7 +85,14 @@ export default function AccountTree({ data, selectedId, onSelect }: Props) {
                         <RegisterStatusDot pendingCount={a.register_pending_count ?? 0} />
                         <span className="truncate text-sm font-medium text-slate-200">{a.name}</span>
                       </div>
-                      <span className="shrink-0 tabular-nums text-sm text-white">
+                      <span
+                        className={cn(
+                          "shrink-0 tabular-nums text-sm",
+                          Number(a.balance) < 0 && a.subtype === "credit_card"
+                            ? "text-positive"
+                            : "text-white"
+                        )}
+                      >
                         {formatMoney(a.balance)}
                       </span>
                     </div>

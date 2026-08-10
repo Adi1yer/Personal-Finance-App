@@ -76,6 +76,7 @@ def seed_chart_of_accounts(db: Session) -> None:
         ("Investment Contribution", "investment_contribution", CategoryType.expense),
         ("Salary", "salary", CategoryType.income),
         ("Interest & Dividends", "interest_dividends", CategoryType.income),
+        ("Other Income", "other_income", CategoryType.income),
         ("Uncategorized", "uncategorized", CategoryType.expense),
     ]
 

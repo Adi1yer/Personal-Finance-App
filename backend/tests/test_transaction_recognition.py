@@ -131,6 +131,19 @@ def test_credit_card_refund():
     assert "Refund" in (r.activity_label or "")
 
 
+def test_credit_card_statement_credit():
+    r = recognize_transaction(
+        payee="STATEMENT CREDIT",
+        account_subtype="credit_card",
+        amount=Decimal("361.84"),
+        payment=Decimal("361.84"),
+        raw_json='{"amount": -361.84, "name": "STATEMENT CREDIT"}',
+    )
+    assert r.family == "card_refund"
+    assert r.activity_label == "Statement credit"
+    assert r.direction == "inflow"
+
+
 def test_credit_card_interest_charge():
     r = recognize_transaction(
         payee="INTEREST CHARGE ON PURCHASES",

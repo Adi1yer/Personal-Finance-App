@@ -179,7 +179,10 @@ def staging_already_satisfied(db: Session, row: ImportStaging) -> bool:
     if row.external_id:
         existing = (
             db.query(Transaction)
-            .filter(Transaction.external_id == row.external_id)
+            .filter(
+                Transaction.external_id == row.external_id,
+                Transaction.voided_at.is_(None),
+            )
             .first()
         )
         if existing:

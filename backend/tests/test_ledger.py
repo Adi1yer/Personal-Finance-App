@@ -56,6 +56,29 @@ def test_accrual_card_purchase(db_session):
     assert sum(e.amount for e in txn.entries) == 0
 
 
+def test_credit_card_plaid_credit_balance_keeps_negative_sign(db_session):
+    """Rewards / overpayment: Plaid reports negative; UI must not abs() it away."""
+    from app.models.plaid import PlaidAccount, PlaidItem
+    from app.services.ledger import account_balance
+
+    card = _add_account(db_session, "Sapphire", AccountType.liability, AccountSubtype.credit_card)
+    item = PlaidItem(item_id="item-cc", access_token_encrypted="enc", institution_name="Chase")
+    db_session.add(item)
+    db_session.flush()
+    db_session.add(
+        PlaidAccount(
+            plaid_item_id=item.id,
+            plaid_account_id="plaid-sapphire",
+            account_id=card.id,
+            name=card.name,
+            balance_current=Decimal("-361.84"),
+        )
+    )
+    db_session.commit()
+
+    assert account_balance(db_session, card.id) == Decimal("-361.84")
+
+
 def test_voided_entries_excluded_from_balance(db_session):
     from datetime import datetime, timezone
 

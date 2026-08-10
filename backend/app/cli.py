@@ -297,7 +297,10 @@ def repair_card_postings_cmd() -> None:
     from app.models.profile import Profile
     from app.services.card_payments import repair_duplicate_card_payments
     from app.services.plaid_dedup import repair_duplicate_plaid_transactions
-    from app.services.posting_repair import repair_card_cross_posted_transactions
+    from app.services.posting_repair import (
+        repair_card_cross_posted_transactions,
+        repair_inverted_card_credits,
+    )
 
     init_registry_database()
     registry = get_registry_session_factory()()
@@ -307,9 +310,13 @@ def repair_card_postings_cmd() -> None:
             db = SessionLocal()
             try:
                 cross = repair_card_cross_posted_transactions(db)
+                credits = repair_inverted_card_credits(db)
                 dup = repair_duplicate_card_payments(db)
                 plaid_dup = repair_duplicate_plaid_transactions(db)
-                typer.echo(f"Card posting repair: {cross}, duplicates={dup}, plaid_dup={plaid_dup}")
+                typer.echo(
+                    f"Card posting repair: {cross}, credits={credits}, "
+                    f"duplicates={dup}, plaid_dup={plaid_dup}"
+                )
             finally:
                 db.close()
             return
@@ -317,13 +324,14 @@ def repair_card_postings_cmd() -> None:
             db = get_profile_session_factory(profile.id)()
             try:
                 cross = repair_card_cross_posted_transactions(db)
+                credits = repair_inverted_card_credits(db)
                 dup = repair_duplicate_card_payments(db)
                 plaid_dup = repair_duplicate_plaid_transactions(db)
                 from app.services.opening_balances import repair_opening_balances
 
                 opening = repair_opening_balances(db)
                 typer.echo(
-                    f"{profile.email}: cross={cross}, duplicates={dup}, "
+                    f"{profile.email}: cross={cross}, credits={credits}, duplicates={dup}, "
                     f"plaid_dup={plaid_dup}, opening={opening}"
                 )
             finally:

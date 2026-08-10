@@ -165,7 +165,11 @@ def build_overview(db: Session) -> OverviewResponse:
             if key == "cash":
                 cash_total += bal
         elif acc.account_type == AccountType.liability:
-            total_liabilities += abs(bal)
+            if bal >= 0:
+                total_liabilities += bal
+            else:
+                # Credit-card credit balance (rewards / overpayment) is an asset.
+                total_assets += abs(bal)
 
         updated_at, label = _last_updated(db, acc, plaid_sync, latest_mark_saved)
         holdings_as_of = None
@@ -199,10 +203,10 @@ def build_overview(db: Session) -> OverviewResponse:
         lines = buckets[key]
         if not lines:
             continue
-        total = sum(
-            (abs(l.balance) if key in ("credit_cards", "other_liabilities") else l.balance)
-            for l in lines
-        )
+        # Credit cards keep signed balances (negative = credit). Group total is net owed.
+        total = sum((l.balance for l in lines), Decimal("0"))
+        if key == "other_liabilities":
+            total = sum((abs(l.balance) for l in lines), Decimal("0"))
         groups.append(
             OverviewGroup(
                 key=key,

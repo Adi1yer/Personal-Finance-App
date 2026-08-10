@@ -36,7 +36,18 @@ _CARD_PAYMENT_MARKERS = (
     "AUTOPAY",
     "AUTO-PAY",
 )
-_CARD_REFUND_MARKERS = ("REFUND", "RETURN", "REVERSAL", "CREDIT ADJUSTMENT")
+_CARD_REFUND_MARKERS = (
+    "REFUND",
+    "RETURN",
+    "REVERSAL",
+    "CREDIT ADJUSTMENT",
+    "STATEMENT CREDIT",
+    "CASH BACK",
+    "CASHBACK",
+    "REWARD",
+    "REWARDS",
+    "PURCHASE STATEMENT CREDIT",
+)
 _CARD_FEE_MARKERS = (
     "INTEREST CHARGE",
     "FINANCE CHARGE",
@@ -343,13 +354,19 @@ def _parse_credit_card(
 
     if any(m in label_upper for m in _CARD_REFUND_MARKERS):
         merchant = normalize_merchant(payee, raw)
+        if "STATEMENT CREDIT" in label_upper:
+            activity = "Statement credit"
+        elif "CASH BACK" in label_upper or "CASHBACK" in label_upper or "REWARD" in label_upper:
+            activity = "Cash back"
+        else:
+            activity = f"Refund {merchant}".strip()
         return RecognizedTransaction(
-            canonical_key=merchant,
-            activity_label=f"Refund {merchant}".strip(),
+            canonical_key=merchant or activity,
+            activity_label=activity,
             direction="inflow",
             family="card_refund",
             ticker=None,
-            suggested_category_slug=None,
+            suggested_category_slug="other_income",
         )
 
     if any(m in label_upper for m in _CARD_FEE_MARKERS):
@@ -366,6 +383,19 @@ def _parse_credit_card(
             family="card_fee",
             ticker=None,
             suggested_category_slug="utilities",
+        )
+
+    # Register inflow (correctly posted credit) or Plaid money-in (amount < 0 in raw).
+    plaid_money_in = bool(raw.get("amount") is not None and amount < 0)
+    if direction == "inflow" or plaid_money_in:
+        merchant = normalize_merchant(payee, raw)
+        return RecognizedTransaction(
+            canonical_key=merchant,
+            activity_label=f"Credit {merchant}".strip(),
+            direction="inflow",
+            family="card_refund",
+            ticker=None,
+            suggested_category_slug="other_income",
         )
 
     if direction == "outflow" or amount > 0:

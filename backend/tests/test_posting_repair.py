@@ -13,7 +13,10 @@ from app.schemas.register import EntryPatch
 from app.schemas.transaction import EntryLine, TransactionCreate
 from app.services.plaid_sync import _post_staged_row
 from app.services.posting import create_transaction
-from app.services.posting_repair import repair_card_cross_posted_transactions
+from app.services.posting_repair import (
+    repair_card_cross_posted_transactions,
+    repair_inverted_card_credits,
+)
 from app.services.register import get_register
 from app.services.seed import DEFAULT_TRACKING_START
 from app.services.slug import unique_account_slug
@@ -70,9 +73,9 @@ def test_credit_card_purchase_does_not_hit_checking(db_session):
     row = ImportStaging(
         external_id="plaid:txn:123",
         txn_date=date(2026, 6, 25),
-        amount=Decimal("-45.67"),
+        amount=Decimal("-45.67"),  # Plaid +45.67 inverted at sync
         payee="Coffee Shop",
-        raw_json=json.dumps({"amount": -45.67, "name": "Coffee Shop"}),
+        raw_json=json.dumps({"amount": 45.67, "name": "Coffee Shop"}),
         plaid_account_id=plaid_acct.id,
         status=StagingStatus.pending,
     )
@@ -118,6 +121,86 @@ def test_card_payment_still_posts_to_checking(db_session):
     assert len(card_reg.rows) == 1
 
 
+def test_statement_credit_posts_as_payment_not_charge(db_session):
+    """Chase rewards / STATEMENT CREDIT must reduce balance owed (green payment)."""
+    _checking, card, _item, plaid_acct = _setup_card_plaid(db_session)
+    row = ImportStaging(
+        external_id="plaid:txn:stmt-credit",
+        txn_date=date(2026, 7, 30),
+        amount=Decimal("361.84"),  # Plaid -361.84 inverted at sync
+        payee="STATEMENT CREDIT",
+        raw_json=json.dumps(
+            {
+                "amount": -361.84,
+                "name": "STATEMENT CREDIT",
+                "merchant_name": "STATEMENT CREDIT",
+            }
+        ),
+        plaid_account_id=plaid_acct.id,
+        status=StagingStatus.pending,
+    )
+    db_session.add(row)
+    db_session.commit()
+
+    assert _post_staged_row(db_session, row, card, plaid_acct)
+    db_session.commit()
+
+    card_reg = get_register(db_session, card.id)
+    assert len(card_reg.rows) == 1
+    reg_row = card_reg.rows[0]
+    assert reg_row.payment == Decimal("361.84")
+    assert reg_row.charge is None
+    assert reg_row.activity_label == "Statement credit"
+
+
+def test_repair_inverted_card_credits(db_session):
+    _checking, card, _item, plaid_acct = _setup_card_plaid(db_session)
+    expense = db_session.query(Account).filter(Account.slug == "uncategorized_expense").one()
+
+    # Simulate the old bug: forced -abs on the card for a credit.
+    bad = create_transaction(
+        db_session,
+        TransactionCreate(
+            txn_date=date(2026, 7, 30),
+            payee="STATEMENT CREDIT",
+            external_id="plaid:txn:bad-credit",
+            entries=[
+                EntryLine(account_id=expense.id, amount=Decimal("1455.84")),
+                EntryLine(account_id=card.id, amount=Decimal("-1455.84")),
+            ],
+        ),
+        source=TransactionSource.plaid,
+    )
+    row = ImportStaging(
+        external_id="plaid:txn:bad-credit",
+        txn_date=date(2026, 7, 30),
+        amount=Decimal("1455.84"),
+        payee="STATEMENT CREDIT",
+        raw_json=json.dumps({"amount": -1455.84, "name": "STATEMENT CREDIT"}),
+        plaid_account_id=plaid_acct.id,
+        status=StagingStatus.posted,
+    )
+    db_session.add(row)
+    db_session.commit()
+
+    result = repair_inverted_card_credits(db_session)
+    assert result["voided"] == 1
+    assert result["requeued"] == 1
+    assert result["reposted"] >= 1
+
+    db_session.refresh(bad)
+    assert bad.voided_at is not None
+    db_session.refresh(row)
+    assert row.status == StagingStatus.posted
+
+    card_reg = get_register(db_session, card.id)
+    live = [r for r in card_reg.rows if r.payee == "STATEMENT CREDIT"]
+    assert len(live) == 1
+    assert live[0].payment == Decimal("1455.84")
+    assert live[0].charge is None
+    assert live[0].activity_label == "Statement credit"
+
+
 def test_repair_voids_cross_posted_card_purchases(db_session):
     checking, card, item, plaid_acct = _setup_card_plaid(db_session)
     expense = db_session.query(Account).filter(Account.slug == "uncategorized_expense").one()
@@ -140,7 +223,7 @@ def test_repair_voids_cross_posted_card_purchases(db_session):
         txn_date=date(2026, 6, 25),
         amount=Decimal("-30"),
         payee="Bad Cross Post",
-        raw_json=json.dumps({"amount": -30, "name": "Bad Cross Post"}),
+        raw_json=json.dumps({"amount": 30, "name": "Bad Cross Post"}),
         plaid_account_id=plaid_acct.id,
         status=StagingStatus.posted,
     )
@@ -204,7 +287,7 @@ def test_repair_does_not_requeue_when_semantic_duplicate_exists(db_session):
         txn_date=date(2026, 6, 25),
         amount=Decimal("-30"),
         payee="Bad Cross Post",
-        raw_json=json.dumps({"amount": -30, "name": "Bad Cross Post"}),
+        raw_json=json.dumps({"amount": 30, "name": "Bad Cross Post"}),
         plaid_account_id=plaid_acct.id,
         status=StagingStatus.posted,
     )

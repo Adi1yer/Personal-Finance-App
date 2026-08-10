@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
@@ -89,6 +90,97 @@ def repair_card_cross_posted_transactions(db: Session) -> dict[str, int]:
         requeued += 1
         if row.external_id not in external_ids:
             external_ids.append(row.external_id)
+
+    if voided or requeued:
+        db.commit()
+
+    posted = 0
+    has_pending = (
+        db.query(ImportStaging)
+        .filter(ImportStaging.status == StagingStatus.pending)
+        .first()
+    )
+    if has_pending:
+        from app.models.plaid import PlaidItem
+        from app.services.plaid_sync import _post_staged_for_item
+
+        for item in db.query(PlaidItem).all():
+            posted += _post_staged_for_item(db, item)
+
+    return {"voided": voided, "requeued": requeued, "reposted": posted}
+
+
+def _card_entry_amount(db: Session, txn: Transaction) -> Decimal | None:
+    for entry in txn.entries:
+        acc = db.get(Account, entry.account_id)
+        if acc and acc.subtype == AccountSubtype.credit_card:
+            return Decimal(str(entry.amount))
+    return None
+
+
+def repair_inverted_card_credits(db: Session) -> dict[str, int]:
+    """
+    Fix statement credits / cash back posted as charges.
+
+    Staging keeps Plaid-inverted amounts (credit → positive). The old CC poster
+    forced card entries to -abs(amount), so rewards showed as red outflows.
+    Void those, re-queue staging, and repost with the correct sign.
+    """
+    voided = requeued = 0
+    external_ids: list[str] = []
+
+    txns = (
+        db.query(Transaction)
+        .filter(
+            Transaction.source == TransactionSource.plaid,
+            Transaction.voided_at.is_(None),
+        )
+        .all()
+    )
+
+    for txn in txns:
+        if _is_legitimate_card_payment(db, txn):
+            continue
+        card_amt = _card_entry_amount(db, txn)
+        if card_amt is None or card_amt >= 0:
+            continue
+
+        staging = None
+        if txn.external_id:
+            staging = (
+                db.query(ImportStaging)
+                .filter(ImportStaging.external_id == txn.external_id)
+                .first()
+            )
+        if not staging:
+            continue
+
+        staged_amt = Decimal(str(staging.amount))
+        # Staging stores Plaid-inverted amounts: credits/refunds are positive.
+        # Bug signature: positive staging + negative card entry (forced -abs).
+        if staged_amt <= 0:
+            continue
+
+        txn.voided_at = datetime.now(timezone.utc)
+        if txn.external_id:
+            external_ids.append(txn.external_id)
+            txn.external_id = None
+        voided += 1
+
+    # Persist voids before requeue checks (otherwise unflushed external_id clears
+    # are invisible to SQL and staging_already_satisfied skips forever).
+    if voided:
+        db.flush()
+
+    for ext_id in external_ids:
+        row = db.query(ImportStaging).filter(ImportStaging.external_id == ext_id).first()
+        if not row:
+            continue
+        if staging_has_live_ledger_match(db, row):
+            row.status = StagingStatus.skipped
+            continue
+        row.status = StagingStatus.pending
+        requeued += 1
 
     if voided or requeued:
         db.commit()

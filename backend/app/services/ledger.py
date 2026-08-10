@@ -46,6 +46,11 @@ def account_balance(db: Session, account_id: int, as_of: date | None = None) -> 
     if (not as_of or as_of >= date.today()) and account.subtype in _PLAID_BALANCE_SUBTYPES:
         plaid_bal = plaid_live_balance(db, account_id)
         if plaid_bal is not None:
+            # Checking: always show as a positive asset balance.
+            # Credit cards: keep Plaid's sign — positive = amount owed,
+            # negative = credit balance (rewards / overpayment).
+            if account.subtype == AccountSubtype.credit_card:
+                return plaid_bal
             return abs(plaid_bal)
 
     return signed

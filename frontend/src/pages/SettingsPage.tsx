@@ -157,7 +157,10 @@ export default function SettingsPage() {
       qc.invalidateQueries({ queryKey: ["googleDriveStatus"] });
       qc.invalidateQueries({ queryKey: ["googleDriveBackups"] });
     },
-    onError: (e) => setDriveMsg((e as Error).message),
+    onError: (e) => {
+      setDriveMsg((e as Error).message);
+      qc.invalidateQueries({ queryKey: ["googleDriveStatus"] });
+    },
   });
 
   const disconnectDrive = useMutation({
@@ -284,7 +287,7 @@ export default function SettingsPage() {
       <Card>
         <CardHeader
           title="Google Drive backups"
-          subtitle="Save the latest 5 ledger snapshots to your Drive (also on quit)"
+          subtitle="Keeps the latest 5 snapshots. Backs up when you quit the app (Cmd+Q), and via Backup now."
         />
         <div className="space-y-4 p-5">
           <div className="flex flex-wrap gap-2 text-xs text-muted">
@@ -301,7 +304,17 @@ export default function SettingsPage() {
               <span>· last backup {new Date(driveStatus.data.last_backup_at).toLocaleString()}</span>
             )}
           </div>
-          {driveMsg && <p className="text-xs text-muted whitespace-pre-wrap">{driveMsg}</p>}
+          {driveMsg && (
+            <p
+              className={`text-xs whitespace-pre-wrap ${
+                /expired|revoked|reconnect|connect again/i.test(driveMsg)
+                  ? "text-amber-400"
+                  : "text-muted"
+              }`}
+            >
+              {driveMsg}
+            </p>
+          )}
           <div className="flex flex-wrap gap-2">
             {!driveStatus.data?.connected ? (
               <Button

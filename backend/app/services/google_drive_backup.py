@@ -81,7 +81,18 @@ def _access_token(db: Session) -> str:
         refresh = decrypt_value(str(enc))
     except Exception as e:
         raise GoogleDriveError(f"Could not decrypt Drive token: {e}") from e
-    data = refresh_access_token(refresh)
+    try:
+        data = refresh_access_token(refresh)
+    except ValueError as e:
+        detail = str(e)
+        # Google Testing apps / revoked consent often return invalid_grant.
+        if "invalid_grant" in detail or "expired or revoked" in detail.lower():
+            disconnect(db)
+            raise GoogleDriveError(
+                "Google Drive access expired or was revoked. "
+                "Click Connect Google Drive again to re-authorize."
+            ) from e
+        raise GoogleDriveError(detail) from e
     access = data.get("access_token")
     if not access:
         raise GoogleDriveError("Failed to refresh Google access token")
@@ -284,3 +295,36 @@ def restore_backup(db: Session, profile_id: str, file_id: str) -> dict[str, Any]
         "local_safety_copy": str(backup_local) if backup_local.is_file() else None,
         "message": "Ledger restored. Reload the app to pick up the restored data.",
     }
+
+
+def backup_all_connected_profiles() -> list[dict[str, Any]]:
+    """Best-effort Drive backup for every profile with a stored refresh token (quit hook)."""
+    from app.db.profile_db import get_profile_session_factory
+    from app.db.registry import get_registry_session_factory, init_registry_database
+    from app.models.profile import Profile
+
+    init_registry_database()
+    registry = get_registry_session_factory()()
+    results: list[dict[str, Any]] = []
+    try:
+        profiles = registry.query(Profile).order_by(Profile.email).all()
+        for profile in profiles:
+            db = get_profile_session_factory(profile.id)()
+            try:
+                if not get_setting(db, "google_drive_refresh_token_enc"):
+                    continue
+                out = create_backup(db, profile.id)
+                results.append({"profile_id": profile.id, "email": profile.email, **out})
+            except Exception as exc:  # noqa: BLE001 — quit must never hang on one profile
+                results.append(
+                    {
+                        "profile_id": profile.id,
+                        "email": profile.email,
+                        "error": str(exc),
+                    }
+                )
+            finally:
+                db.close()
+    finally:
+        registry.close()
+    return results

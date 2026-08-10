@@ -79,6 +79,8 @@ def get_backups(db: Session = Depends(get_db)) -> dict[str, Any]:
         return {"backups": list_backups(db)}
     except GoogleDriveError as e:
         raise HTTPException(400, str(e)) from e
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @router.post("/backup")
@@ -89,6 +91,8 @@ def post_backup(
     try:
         return create_backup(db, profile.id)
     except GoogleDriveError as e:
+        raise HTTPException(400, str(e)) from e
+    except ValueError as e:
         raise HTTPException(400, str(e)) from e
 
 
@@ -101,6 +105,8 @@ def post_restore(
     try:
         return restore_backup(db, profile.id, body.file_id)
     except GoogleDriveError as e:
+        raise HTTPException(400, str(e)) from e
+    except ValueError as e:
         raise HTTPException(400, str(e)) from e
 
 

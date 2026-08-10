@@ -30,13 +30,14 @@ Same as bank Link: Safari may say the connection is not private. **Show Details 
 
 ## Quit backup
 
-When Drive is connected, quitting the Mac app tries to upload a backup before exit (with a timeout). Keep the API running until quit finishes.
+When Drive is connected, quitting the Mac app (**Cmd+Q** or close the window) uploads a snapshot before exit. Prefer a normal quit over force-quit so the upload can finish.
 
 ## Common errors
 
 | Symptom | Fix |
 |---------|-----|
 | 403 access_denied / not verified | Add yourself under OAuth **Test users**; wait a minute and retry |
+| “access expired or was revoked” / Backup fails | Google refresh token died (common in Testing mode). **Connect Google Drive** again |
 | Safari can’t open localhost / connection dropped | API not running, or HTTP vs HTTPS mismatch — use the redirect URI from Settings; ensure app is up |
 | Desktop client has no redirect field | Create a **Web application** OAuth client instead |
 | Configured but not connected | Click Connect and finish the browser flow |

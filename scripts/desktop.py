@@ -233,7 +233,31 @@ def main() -> None:
         background_color="#0B1220",
     )
     webview.start()
+    # Mac app path (pywebview): backup when the window closes / user quits.
+    # Electron uses GoogleDriveQuitBackup + IPC instead.
+    _quit_drive_backup()
     _shutdown()
+
+
+def _quit_drive_backup() -> None:
+    """Upload Drive snapshots for connected profiles before tearing down the API."""
+    try:
+        from app.services.google_drive_backup import backup_all_connected_profiles
+
+        results = backup_all_connected_profiles()
+        if not results:
+            _log("Quit backup: no connected Google Drive profiles")
+            return
+        for row in results:
+            if row.get("error"):
+                _log(f"Quit backup failed for {row.get('email')}: {row['error']}")
+            else:
+                _log(
+                    f"Quit backup ok for {row.get('email')}: "
+                    f"{row.get('name') or row.get('file_id')}"
+                )
+    except Exception as exc:  # noqa: BLE001
+        _log(f"Quit backup skipped: {exc}")
 
 
 if __name__ == "__main__":

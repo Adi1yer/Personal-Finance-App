@@ -1,10 +1,15 @@
-# Personal Finance
+# Personal Finance — public branding pages
 
-Local-first personal finance app for macOS — ledger, bank sync, and optional Google Drive backups.
+These pages are published via **GitHub Pages** for Google OAuth consent branding
+(home page, privacy, terms). Google requires a domain **you can verify** in
+Search Console — use `adi1yer.github.io`, not `github.com`.
 
-Your data stays on your computer. Drive backup is optional and writes only to **your** Google Drive.
+Live URLs (after Pages is enabled):
 
-## Legal
+| Page | URL |
+|------|-----|
+| Home | https://adi1yer.github.io/Personal-Finance-App/ |
+| Privacy | https://adi1yer.github.io/Personal-Finance-App/privacy.html |
+| Terms | https://adi1yer.github.io/Personal-Finance-App/terms.html |
 
-- [Privacy Policy](PRIVACY.md)
-- [Terms of Service](TERMS.md)
+Markdown copies (for the repo): [PRIVACY.md](PRIVACY.md), [TERMS.md](TERMS.md).
